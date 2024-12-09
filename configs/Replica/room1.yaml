@@ -1,0 +1,13 @@
+inherit_from: /data0/wjy/sgl/ESLAM-main-list/configs/Replica/replica.yaml
+mapping:
+  bound: [[-6.0,1.8],[-3.6,3.3],[-2.0,1.9]]
+  marching_cubes_bound: [[-6.0,1.8],[-3.6,3.3],[-2.0,1.9]]
+data:
+  input_folder: /data0/sgl/ESLAM-main/Datasets/room1_loop
+  output: output/Replica/room1_0514
+  trainskip: 1
+
+loop:
+  loop_launch_id: 100
+  min_time_diff: 100
+  sim_threshold: 0.93

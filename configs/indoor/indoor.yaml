@@ -1,0 +1,140 @@
+dataset: 'indoor'
+tracking:
+  vis_freq: 1
+  vis_inside_freq: 100
+  ignore_edge_W: 25
+  ignore_edge_H: 25
+  const_speed_assumption: True
+#  lr_T: 0.003
+#  lr_R: 0.003
+  lr_T: 0.003
+  lr_R: 0.003
+  pixels: 2500
+  iters: 100
+
+mapping:
+  every_frame: 5
+  #every_frame: 4
+  pixels: 5000
+  iters: 100
+  iters_first: 1000
+#  lr:
+#    decoders_lr: 0.001
+#    planes_lr: 0.005
+#    c_planes_lr: 0.005
+
+  lr:
+    decoders_lr: 0.01
+    planes_lr: 0.01
+    c_planes_lr: 0.01
+
+  ignore_edge_W: 75
+  ignore_edge_H: 75
+  vis_freq: 60
+  #vis_freq: 2
+  vis_inside_freq: 30
+  ckpt_freq: 500
+  keyframe_every: 50
+  w_sdf_fs: 5
+  w_sdf_center: 200
+  w_sdf_tail: 30
+#  w_sdf_fs: 10
+#  w_sdf_center: 800
+#  w_sdf_tail: 60
+
+  w_depth: 0.1
+  w_color: 5
+  #w_smooth: 0.000001
+  w_smooth: 0
+  n_pixels: 0.05
+  max_drift: 100 #just for test
+
+  bound: [ [ -8., 8. ], [ -8., 8. ], [ -8., 8. ] ]
+  marching_cubes_bound: [ [ -8., 8. ], [ -8., 8. ], [ -8., 8. ] ]
+
+#  bound: [ [ -9.0,13.9 ],[ -4.9,9.2 ],[ -5.4,9.9] ]
+#  marching_cubes_bound: [ [ -9.0,13.9 ],[ -4.9,9.2 ],[ -5.4,9.9] ]
+
+#  bound: [ [ -19,52 ],[ -18,13 ],[ -6,10] ]
+#  marching_cubes_bound: [ [ -19,52 ],[ -18,13 ],[ -6,10] ]
+
+#  bound: [ [ -10,12 ],[ -18,13 ],[ -6,10] ]
+#  marching_cubes_bound: [ [-10,12],[ -18,13 ],[ -6,10] ]
+
+#  bound: [ [ -12.482891710630172, 14.139432315238835 ],[ -7.340853771566135, 9.15752942403496 ],[ -5.3833305793463975, 13.399706488780993 ] ]
+#  marching_cubes_bound: [ [ -12.482891710630172, 14.139432315238835 ],[ -7.340853771566135, 9.15752942403496 ],[ -5.3833305793463975, 13.399706488780993 ] ]
+
+# pose
+#  bound: [[-1.9799972, 7.151519],[-0.08003199,0.22313055],[-0.600192, 6.0592103]]
+#  marching_cubes_bound: [[-1.9799972, 7.151519],[-0.08003199, 0.22313055],[-0.600192, 6.0592103]]
+
+  mesh_freq: 20 #
+  mapping_window_size: 20
+  res_keyframe: 8
+  gb_keyframe: 4
+
+cam:
+  H: 1080
+  W: 1920
+  fx: 1413.8239418720268
+  fy: 1409.360946415347
+  cx: 960.0
+  cy: 540.0
+  png_depth_scale: 1 #for depth image in png format
+  crop_edge: 0
+data:
+  input_folder: /data0/dataset/localrf_hike_scene/indoor
+  #8521  /data0/wjy/ESLAM/Datasets/Apartment
+  #6001/9988  /data0/dataset/Apartment
+  #/data0/wjy/ESLAM/Datasets/Apartment
+
+  output: /data0/sgl/ESLAM-main/output/Indoor/0122_t
+
+  #6001/9988/data0/sgl/ESLAM-main/output/Apartment
+
+  trainskip: 1
+  sc_factor: 1
+  downsample: 1
+  translation: 0
+  num_workers: 4
+
+meshing:
+  resolution: 0.03 #cm # Increase this number to speed up meshing algorithm
+  eval_rec: False
+  depth_test: True
+  get_largest_components: True
+
+pos:
+  enc: 'OneBlob'
+  n_bins: 16
+
+decoder:
+  geo_feat_dim: 15
+  hidden_dim: 32
+  num_layers: 2
+  num_layers_color: 2
+  hidden_dim_color: 32
+  tcnn_network: False
+
+training:
+  trunc: 0.1
+  smooth_vox: 0.1
+  smooth_margin: 0.05
+  smooth_pts: 64
+grid:
+  tcnn_encoding: True
+
+model:
+  c_dim: 32
+  truncation: 0.1
+  #input_ch: 128 #64
+  input_ch: 64
+  input_ch_pos: 48
+
+planes_res:
+  coarse: 0.24
+  fine: 0.06
+  bound_dividable: 0.24
+c_planes_res:
+  coarse: 0.24
+  fine: 0.03

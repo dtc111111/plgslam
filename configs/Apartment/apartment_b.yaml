@@ -1,0 +1,93 @@
+dataset: 'azure'
+tracking:
+  vis_freq: 500
+  vis_inside_freq: 25
+  ignore_edge_W: 20
+  ignore_edge_H: 20
+  seperate_LR: False
+  const_speed_assumption: True
+  gt_camera: False
+  lr: 0.003
+  pixels: 200
+  iters: 50
+  #iters: 70
+
+mapping:
+  every_frame: 5
+  #every_frame: 4
+  pixels: 5000
+  iters: 60
+  #iters: 80
+  iters_first: 1500
+  lr_embed: 0.01
+  lr_decoder: 0.01
+  #vis_freq: 50
+  vis_freq: 500
+  vis_inside_freq: 30
+  ckpt_freq: 500
+  keyframe_every: 50
+  mapping_window_size: 10
+#  w_sdf_fs: 5
+#  w_sdf_center: 200
+#  w_sdf_tail: 30
+#  w_depth: 0.1
+#  w_color: 5
+  #w_smooth: 0.000001
+  w_smooth: 0
+  n_pixels: 0.05
+  max_drift: 5 #just for test
+  bound: [ [ -5.8,11.3 ],[ -4.0,4.5 ],[ -7.9,4.9 ] ]
+  marching_cubes_bound: [ [ -5.8,11.3 ],[ -4.0,4.5 ],[ -7.9,4.9 ] ]
+  mesh_freq: 4000 #
+cam:
+  H: 720 
+  W: 1280
+  fx: 607.4694213867188
+  fy: 607.4534912109375
+  cx: 636.9967041015625
+  cy: 369.2689514160156
+  png_depth_scale: 1000.0 #for depth image in png format
+  crop_edge: 0
+data:
+  input_folder: /data0/wjy/ESLAM/Datasets/Apartment
+  #8521  /data0/wjy/ESLAM/Datasets/Apartment
+  #6001  /data0/dataset/Apartment
+  output: /data0/wjy/sgl/ESLAM-main-list/output/Apartment/1018_local_max5_5060
+
+#  /data0/sgl/ESLAM-main/output/Apartment/1018_gloc_max4
+#  /data0/sgl/ESLAM-main_original_version/output/Apartment/0820/mesh/final_mesh.ply
+#  /data0/sgl/Co-SLAM-main/output/Apartment/demo/mesh_track12594.ply
+#  /data0/sgl/nice-slam-master/output/Apartment/mesh/final_mesh.ply
+#  /data0/sgl/ESLAM-main/output/Apartment/1016_local_max4/mesh/final_mesh.ply
+#  /data0/sgl/ESLAM-main-list_gloc/output/Apartment/1016_gloc_max4/mesh/final_mesh.ply
+
+  trainskip: 1
+  sc_factor: 1
+  downsample: 1
+  translation: 0
+  num_workers: 4
+
+meshing:
+  depth_test: True
+  get_largest_components: True
+
+pos:
+  enc: 'OneBlob'
+  n_bins: 16
+
+decoder:
+  geo_feat_dim: 15
+  hidden_dim: 32
+  num_layers: 2
+  num_layers_color: 2
+  hidden_dim_color: 32
+  tcnn_network: False
+
+training:
+  trunc: 0.06
+  smooth_pts: 32
+  smooth_vox: 0.1
+  smooth_margin: 0.05
+
+grid:
+  tcnn_encoding: True

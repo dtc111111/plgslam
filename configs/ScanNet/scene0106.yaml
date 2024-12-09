@@ -1,0 +1,10 @@
+inherit_from: /data0/wjy/sgl/ESLAM-main-list/configs/ScanNet/scannet.yaml
+mapping:
+  bound: [[-1.1,9.8],[-1.0,10.0],[-1.0,4.3]]
+  marching_cubes_bound: [[-1.1,9.8],[-1.0,10.0],[-1.0,4.3]]
+  max_drift: 4 #just for test
+data:
+  input_folder: /data0/wjy/ESLAM/Datasets/scannet/scene0106_00
+  #input_folder: /data0/dataset/ScanNet/scans/scene0106_00
+  #output: output/scannet/scans/scene0106_00_smooth_max4
+  output: /data0/wjy/sgl/nice-slam/output/scannet/scans/scene_0106_00

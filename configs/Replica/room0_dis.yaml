@@ -1,0 +1,18 @@
+inherit_from: configs/Replica/replica.yaml
+mapping:
+  bound: [[-1.9,7.9],[-2.2,4.5],[-2.5,2.3]]
+  marching_cubes_bound: [[-1.9,7.9],[-2.2,4.5],[-2.5,2.3]]
+  #no_log_on_first_frame: False
+  mesh_freq: 10
+verbose: True
+data:
+#  input_folder: /data0/sgl/ESLAM-main/Datasets/room0_dis/0-499
+#  output: output/Replica/room0_dis/0505_1_0526
+#  input_folder: /data0/sgl/ESLAM-main/Datasets/room0_dis/500-999
+#  output: output/Replica/room0_dis/0505_2_0526
+#  input_folder: /data0/sgl/ESLAM-main/Datasets/room0_dis/1000-1499
+#  output: output/Replica/room0_dis/0505_3_0526
+  input_folder: /data0/sgl/ESLAM-main/Datasets/room0_dis/1500-1999
+  output: output/Replica/room0_dis/0505_4_0526
+  trainskip: 1
+
