@@ -1,43 +1,4 @@
-# This file is a part of ESLAM.
-#
-# ESLAM is a NeRF-based SLAM system. It utilizes Neural Radiance Fields (NeRF)
-# to perform Simultaneous Localization and Mapping (SLAM) in real-time.
-# This software is the implementation of the paper "ESLAM: Efficient Dense SLAM
-# System Based on Hybrid Representation of Signed Distance Fields" by
-# Mohammad Mahdi Johari, Camilla Carta, and Francois Fleuret.
-#
-# Copyright 2023 ams-OSRAM AG
-#
-# Author: Mohammad Mahdi Johari <mohammad.johari@idiap.ch>
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-# This file is a modified version of https://github.com/cvg/nice-slam/blob/master/src/Tracker.py
-# which is covered by the following copyright and permission notice:
-    #
-    # Copyright 2022 Zihan Zhu, Songyou Peng, Viktor Larsson, Weiwei Xu, Hujun Bao, Zhaopeng Cui, Martin R. Oswald, Marc Pollefeys
-    #
-    # Licensed under the Apache License, Version 2.0 (the "License");
-    # you may not use this file except in compliance with the License.
-    # You may obtain a copy of the License at
-    #
-    #     http://www.apache.org/licenses/LICENSE-2.0
-    #
-    # Unless required by applicable law or agreed to in writing, software
-    # distributed under the License is distributed on an "AS IS" BASIS,
-    # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    # See the License for the specific language governing permissions and
-    # limitations under the License.
+
 
 import torch
 import copy
@@ -59,44 +20,26 @@ class Tracker(object):
     Args:
         cfg (dict): config dict
         args (argparse.Namespace): arguments
-        eslam (ESLAM): ESLAM object
+
     """
-    def __init__(self, cfg, args, eslam):
+    def __init__(self, cfg, args, plgslam):
         self.cfg = cfg
         self.args = args
 
         self.scale = cfg['scale']
 
-        self.idx = eslam.idx
-        self.bound = eslam.bound
-        self.mesher = eslam.mesher
-        self.output = eslam.output
-        self.verbose = eslam.verbose
-        self.renderer = eslam.renderer
-        self.gt_c2w_list = eslam.gt_c2w_list
-        self.mapping_idx = eslam.mapping_idx
-        self.mapping_cnt = eslam.mapping_cnt
-        # self.shared_decoders = eslam.shared_decoders
+        self.idx = plgslam.idx
+        self.bound = plgslam.bound
+        self.mesher = plgslam.mesher
+        self.output = plgslam.output
+        self.verbose = plgslam.verbose
+        self.renderer = plgslam.renderer
+        self.gt_c2w_list = plgslam.gt_c2w_list
+        self.mapping_idx = plgslam.mapping_idx
+        self.mapping_cnt = plgslam.mapping_cnt
+        self.estimate_c2w_list = plgslam.estimate_c2w_list
+        self.truncation = plgslam.truncation
 
-        self.estimate_c2w_list = eslam.estimate_c2w_list
-        self.truncation = eslam.truncation
-
-        # self.shared_planes_xy = eslam.shared_planes_xy
-        # self.shared_planes_xz = eslam.shared_planes_xz
-        # self.shared_planes_yz = eslam.shared_planes_yz
-        #
-        # self.shared_c_planes_xy = eslam.shared_c_planes_xy
-        # self.shared_c_planes_xz = eslam.shared_c_planes_xz
-        # self.shared_c_planes_yz = eslam.shared_c_planes_yz
-    ##########################
-        # self.shared_planes_xy_global = eslam.shared_planes_xy_global
-        # self.shared_planes_xz_global = eslam.shared_planes_xz_global
-        # self.shared_planes_yz_global = eslam.shared_planes_yz_global
-        #
-        # self.shared_c_planes_xy_global = eslam.shared_c_planes_xy_global
-        # self.shared_c_planes_xz_global = eslam.shared_c_planes_xz_global
-        # self.shared_c_planes_yz_global = eslam.shared_c_planes_yz_global
-    ##########################
         self.cam_lr_T = cfg['tracking']['lr_T']
         self.cam_lr_R = cfg['tracking']['lr_R']
         self.device = cfg['device']
@@ -128,33 +71,13 @@ class Tracker(object):
                                            vis_dir=os.path.join(self.output, 'tracking_vis'), renderer=self.renderer,
                                            truncation=self.truncation, verbose=self.verbose, device=self.device)
 
-        self.H, self.W, self.fx, self.fy, self.cx, self.cy = eslam.H, eslam.W, eslam.fx, eslam.fy, eslam.cx, eslam.cy
+        self.H, self.W, self.fx, self.fy, self.cx, self.cy = plgslam.H, plgslam.W, plgslam.fx, plgslam.fy, plgslam.cx, plgslam.cy
 
-        # self.decoders = copy.deepcopy(self.shared_decoders)
-        #
-        # self.planes_xy = copy.deepcopy(self.shared_planes_xy)
-        # self.planes_xz = copy.deepcopy(self.shared_planes_xz)
-        # self.planes_yz = copy.deepcopy(self.shared_planes_yz)
-        #
-        # self.c_planes_xy = copy.deepcopy(self.shared_c_planes_xy)
-        # self.c_planes_xz = copy.deepcopy(self.shared_c_planes_xz)
-        # self.c_planes_yz = copy.deepcopy(self.shared_c_planes_yz)
-    ##########################
-        #init global planes
-        # self.planes_xy_global = copy.deepcopy(self.shared_planes_xy_global)
-        # self.planes_xz_global = copy.deepcopy(self.shared_planes_xz_global)
-        # self.planes_yz_global = copy.deepcopy(self.shared_planes_yz_global)
-        #
-        # self.c_planes_xy_global = copy.deepcopy(self.shared_c_planes_xy_global)
-        # self.c_planes_xz_global = copy.deepcopy(self.shared_c_planes_xz_global)
-        # self.c_planes_yz_global = copy.deepcopy(self.shared_c_planes_yz_global)
+        self.embedpos_fn = plgslam.shared_embedpos_fn
 
-        self.embedpos_fn = eslam.shared_embedpos_fn
-        #self.embedpos_fn = eslam.embedpos_fn
-
-        self.shared_all_planes_list = eslam.shared_all_planes_list
-        self.shared_decoders_list = eslam.shared_decoders_list
-        self.shared_cur_rf_id = eslam.shared_cur_rf_id
+        self.shared_all_planes_list = plgslam.shared_all_planes_list
+        self.shared_decoders_list = plgslam.shared_decoders_list
+        self.shared_cur_rf_id = plgslam.shared_cur_rf_id
         self.pre_shared_cur_rf_id = self.shared_cur_rf_id[0].clone()
         self.update_para_flag = 1
 
@@ -175,7 +98,7 @@ class Tracker(object):
                 c_planes[i] = plane
         #self.decoders_list = copy.deepcopy(self.shared_decoders_list)
 
-        self.shared_decoders = eslam.shared_decoders_list[self.shared_cur_rf_id[0]]
+        self.shared_decoders = plgslam.shared_decoders_list[self.shared_cur_rf_id[0]]
         self.decoders = copy.deepcopy(self.shared_decoders).to(self.device)
      #  # ##########################
         for p in self.decoders.parameters():
