@@ -1,43 +1,3 @@
-# This file is a part of ESLAM.
-#
-# ESLAM is a NeRF-based SLAM system. It utilizes Neural Radiance Fields (NeRF)
-# to perform Simultaneous Localization and Mapping (SLAM) in real-time.
-# This software is the implementation of the paper "ESLAM: Efficient Dense SLAM
-# System Based on Hybrid Representation of Signed Distance Fields" by
-# Mohammad Mahdi Johari, Camilla Carta, and Francois Fleuret.
-#
-# Copyright 2023 ams-OSRAM AG
-#
-# Author: Mohammad Mahdi Johari <mohammad.johari@idiap.ch>
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-# This file is a modified version of https://github.com/cvg/nice-slam/blob/master/src/utils/Mesher.py
-# which is covered by the following copyright and permission notice:
-#
-# Copyright 2022 Zihan Zhu, Songyou Peng, Viktor Larsson, Weiwei Xu, Hujun Bao, Zhaopeng Cui, Martin R. Oswald, Marc Pollefeys
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 import numpy as np
 import open3d as o3d
@@ -55,25 +15,24 @@ class Mesher(object):
     Args:
         cfg (dict): configuration dictionary.
         args (argparse.Namespace): arguments.
-        eslam (ESLAM): ESLAM object.
         points_batch_size (int): number of points to be processed in each batch.
         ray_batch_size (int): number of rays to be processed in each batch.
 
     """
 
-    def __init__(self, cfg, args, eslam, points_batch_size=500000, ray_batch_size=100000):
+    def __init__(self, cfg, args, plgslam, points_batch_size=500000, ray_batch_size=100000):
         self.points_batch_size = points_batch_size
         self.ray_batch_size = ray_batch_size
-        self.renderer = eslam.renderer
+        self.renderer = plgslam.renderer
         self.scale = cfg['scale']
 
         self.resolution = cfg['meshing']['resolution']
         self.level_set = cfg['meshing']['level_set']
         self.mesh_bound_scale = cfg['meshing']['mesh_bound_scale']
 
-        self.bound = eslam.bound
-        self.cur_rf_id = eslam.shared_cur_rf_id
-        self.verbose = eslam.verbose
+        self.bound = plgslam.bound
+        self.cur_rf_id = plgslam.shared_cur_rf_id
+        self.verbose = plgslam.verbose
 
         self.marching_cubes_bound = torch.from_numpy(
             np.array(cfg['mapping']['marching_cubes_bound']) * self.scale)
@@ -81,9 +40,9 @@ class Mesher(object):
         self.frame_reader = get_dataset(cfg, args, self.scale, device='cpu')
         self.n_img = len(self.frame_reader)
 
-        self.H, self.W, self.fx, self.fy, self.cx, self.cy = eslam.H, eslam.W, eslam.fx, eslam.fy, eslam.cx, eslam.cy
-        self.embedpos_fn = eslam.embedpos_fn
-        self.device = eslam.device
+        self.H, self.W, self.fx, self.fy, self.cx, self.cy = plgslam.H, plgslam.W, plgslam.fx, plgslam.fy, plgslam.cx, plgslam.cy
+        self.embedpos_fn = plgslam.embedpos_fn
+        self.device = plgslam.device
 
     def get_bound_from_frames(self, keyframe_dict, scale=1):
         """

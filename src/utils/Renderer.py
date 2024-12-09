@@ -1,43 +1,4 @@
-# This file is a part of ESLAM.
-#
-# ESLAM is a NeRF-based SLAM system. It utilizes Neural Radiance Fields (NeRF)
-# to perform Simultaneous Localization and Mapping (SLAM) in real-time.
-# This software is the implementation of the paper "ESLAM: Efficient Dense SLAM
-# System Based on Hybrid Representation of Signed Distance Fields" by
-# Mohammad Mahdi Johari, Camilla Carta, and Francois Fleuret.
-#
-# Copyright 2023 ams-OSRAM AG
-#
-# Author: Mohammad Mahdi Johari <mohammad.johari@idiap.ch>
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-# This file is a modified version of https://github.com/cvg/nice-slam/blob/master/src/utils/Renderer.py
-# which is covered by the following copyright and permission notice:
-    #
-    # Copyright 2022 Zihan Zhu, Songyou Peng, Viktor Larsson, Weiwei Xu, Hujun Bao, Zhaopeng Cui, Martin R. Oswald, Marc Pollefeys
-    #
-    # Licensed under the Apache License, Version 2.0 (the "License");
-    # you may not use this file except in compliance with the License.
-    # You may obtain a copy of the License at
-    #
-    #     http://www.apache.org/licenses/LICENSE-2.0
-    #
-    # Unless required by applicable law or agreed to in writing, software
-    # distributed under the License is distributed on an "AS IS" BASIS,
-    # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    # See the License for the specific language governing permissions and
-    # limitations under the License.
+
 
 import torch
 from src.common import get_rays, sample_pdf, normalize_3d_coordinate
@@ -47,11 +8,10 @@ class Renderer(object):
     Renderer class for rendering depth and color.
     Args:
         cfg (dict): configuration.
-        eslam (ESLAM): ESLAM object.
         ray_batch_size (int): batch size for sampling rays.
     """
-    def __init__(self, cfg, eslam, ray_batch_size=10000):
-        self.cfg = eslam.cfg
+    def __init__(self, cfg, plgslam, ray_batch_size=10000):
+        self.cfg = plgslam.cfg
         self.ray_batch_size = ray_batch_size
 
         self.perturb = cfg['rendering']['perturb']
@@ -59,11 +19,11 @@ class Renderer(object):
         self.n_importance = cfg['rendering']['n_importance']
 
         self.scale = cfg['scale']
-        self.bound = eslam.bound.to(eslam.device, non_blocking=True)
-        self.cur_rf_id = eslam.shared_cur_rf_id
+        self.bound = plgslam.bound.to(plgslam.device, non_blocking=True)
+        self.cur_rf_id = plgslam.shared_cur_rf_id
 
-        self.H, self.W, self.fx, self.fy, self.cx, self.cy = eslam.H, eslam.W, eslam.fx, eslam.fy, eslam.cx, eslam.cy
-        self.embedpos_fn = eslam.embedpos_fn
+        self.H, self.W, self.fx, self.fy, self.cx, self.cy = plgslam.H, plgslam.W, plgslam.fx, plgslam.fy, plgslam.cx, plgslam.cy
+        self.embedpos_fn = plgslam.embedpos_fn
 
     def perturbation(self, z_vals):
         """
