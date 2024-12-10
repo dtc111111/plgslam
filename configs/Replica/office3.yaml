@@ -2,15 +2,6 @@ inherit_from: configs/Replica/replica.yaml
 mapping:
   bound: [[-5.7,4.1],[-6.5,3.9],[-1.8,2.5]]
   marching_cubes_bound: [[-5.7,4.1],[-6.5,3.9],[-1.8,2.5]]
-  every_frame: 5
-
 data:
-  input_folder: /data0/wjy/ESLAM/Datasets/Replica/office3
-# input_folder: /data0/sgl/ESLAM-main/Datasets/office0_loop
-  output: output/Replica/office3_gt
-  trainskip: 1
-
-loop:
-  loop_launch_id: 100
-  min_time_diff: 100
-  sim_threshold: 0.91
+  input_folder: Datasets/Replica/office3
+  output: output/Replica/office3

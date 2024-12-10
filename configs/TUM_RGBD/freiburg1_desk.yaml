@@ -3,7 +3,7 @@ mapping:
   bound: [[-4.6,2.6],[-3.3,3.2],[-2.0,4.9]]
   marching_cubes_bound: [[-2.6,1.1],[-1.5,1.5],[-0.6,2.4]]
 data:
-  input_folder: /data0/sgl/ESLAM-main/Datasets/rgbd_dataset_freiburg1_desk
+  input_folder: Datasets/TUM_RGBD/rgbd_dataset_freiburg1_desk
   output: output/TUM_RGBD/rgbd_dataset_freiburg1_desk
 cam:  #intrinsic is different per scene in TUM
   H: 480

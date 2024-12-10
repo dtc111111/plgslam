@@ -1,78 +1,42 @@
 dataset: 'azure'
 tracking:
-  vis_freq: 200
-  vis_inside_freq: 100
-  ignore_edge_W: 25
-  ignore_edge_H: 25
+  vis_freq: 500
+  vis_inside_freq: 25
+  ignore_edge_W: 20
+  ignore_edge_H: 20
+  seperate_LR: False
   const_speed_assumption: True
   gt_camera: False
-#  lr_T: 0.003
-#  lr_R: 0.003
-  lr_T: 0.001
-  lr_R: 0.001
-  pixels: 2500
+  lr: 0.003
+  pixels: 200
   iters: 50
 
 mapping:
-  sample: 2048
-  min_pixels_cur: 100
   every_frame: 5
-  #every_frame: 4
   pixels: 5000
   iters: 60
   iters_first: 1500
-#  lr:
-#    decoders_lr: 0.001
-#    planes_lr: 0.005
-#    c_planes_lr: 0.005
-
-  lr:
-    decoders_lr: 0.01
-    planes_lr: 0.01
-    c_planes_lr: 0.01
-#  lr:
-#      decoders_lr: 0.02
-#      planes_lr: 0.02
-#      c_planes_lr: 0.02
-
-  ignore_edge_W: 75
-  ignore_edge_H: 75
-  vis_freq: 200
-  #vis_freq: 2
+  lr_embed: 0.01
+  lr_decoder: 0.01
+  #vis_freq: 50
+  vis_freq: 500
   vis_inside_freq: 30
   ckpt_freq: 500
   keyframe_every: 50
-#  w_sdf_fs: 5
-#  w_sdf_center: 200
-#  w_sdf_tail: 30
-  w_sdf_fs: 20  #10
-  w_sdf_center: 1200  #loss换 coslam的?
-  w_sdf_tail: 120
-
-  sdf_weight: 2000
-  fs_weight: 20
-
+  mapping_window_size: 10
+  w_sdf_fs: 5
+  w_sdf_center: 200
+  w_sdf_tail: 30
   w_depth: 0.1
   w_color: 5
-  w_smooth: 0.001
-  #w_smooth: 0
+  w_smooth: 0.000001
   n_pixels: 0.05
-  max_drift: 100 #just for test
-#  bound: [ [ -5.8,11.3 ],[ -4.0,4.5 ],[ -7.9,4.9 ] ]
-#  marching_cubes_bound: [ [ -5.8,11.3 ],[ -4.0,4.5 ],[ -7.9,4.9 ] ]
-#
-  bound: [ [ -1.5,3.5 ],[ -4.5,3.6 ],[ -6.5,8. ] ]
-  marching_cubes_bound: [[-1.5,3.5],[-4.5,3.6],[-6.5,8.]]
-  mesh_freq: 4000 #
-  mapping_window_size: 20
-  gb_keyframe: 5
-
-#  res_keyframe: 8
-#  gb_keyframe: 4
-
-  keyframe_selection_method: 'overlap' #'global'
+  max_drift: 3 #just for test
+  bound: [ [ -5.8,11.3 ],[ -4.0,4.5 ],[ -7.9,4.9 ] ]
+  marching_cubes_bound: [ [ -5.8,11.3 ],[ -4.0,4.5 ],[ -7.9,4.9 ] ]
+  mesh_freq: 1000 #
 cam:
-  H: 720
+  H: 720 
   W: 1280
   fx: 607.4694213867188
   fy: 607.4534912109375
@@ -81,15 +45,8 @@ cam:
   png_depth_scale: 1000.0 #for depth image in png format
   crop_edge: 0
 data:
-  input_folder: /data0/dataset/Apartment
-  #8521  /data0/wjy/ESLAM/Datasets/Apartment
-  #6001/9988  /data0/dataset/Apartment
-  #/data0/wjy/ESLAM/Datasets/Apartment
-
-  output: /data0/sgl/ESLAM-main/output/Apartment/0526
-
-  #6001/9988/data0/sgl/ESLAM-main/output/Apartment
-  #/data0/wjy/sgl/ESLAM-main-list/output/Apartment
+  input_folder: /data0/sgl/ESLAM-main/Datasets/Apartment
+  output: output/Apartment/0902
 
   trainskip: 1
   sc_factor: 1
@@ -98,8 +55,6 @@ data:
   num_workers: 4
 
 meshing:
-  resolution: 0.03 #cm # Increase this number to speed up meshing algorithm
-  eval_rec: False
   depth_test: True
   get_largest_components: True
 
@@ -114,26 +69,3 @@ decoder:
   num_layers_color: 2
   hidden_dim_color: 32
   tcnn_network: False
-
-training:
-  trunc: 0.1
-  smooth_vox: 0.1
-  smooth_margin: 0.05
-  smooth_pts: 64
-grid:
-  tcnn_encoding: True
-
-model:
-  c_dim: 32
-  truncation: 0.1
-  #input_ch: 128 #64
-  input_ch: 64
-  input_ch_pos: 48
-
-planes_res:
-  coarse: 0.24 #0.24
-  fine: 0.02
-  bound_dividable: 0.24 #0.24
-c_planes_res:
-  coarse: 0.24
-  fine: 0.03

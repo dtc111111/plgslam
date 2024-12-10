@@ -1,5 +1,3 @@
-
-
 import torch
 import copy
 import os
@@ -13,32 +11,34 @@ from src.common import (matrix_to_cam_pose, cam_pose_to_matrix, get_samples)
 from src.utils.datasets import get_dataset
 from src.utils.Frame_Visualizer import Frame_Visualizer
 from src.utils.coordinates import coordinates
-import torch.nn.functional as F
+
 class Tracker(object):
     """
     Tracking main class.
     Args:
         cfg (dict): config dict
         args (argparse.Namespace): arguments
-
+        eslam (ESLAM): ESLAM object
     """
-    def __init__(self, cfg, args, plgslam):
+    def __init__(self, cfg, args, eslam):
         self.cfg = cfg
         self.args = args
 
         self.scale = cfg['scale']
 
-        self.idx = plgslam.idx
-        self.bound = plgslam.bound
-        self.mesher = plgslam.mesher
-        self.output = plgslam.output
-        self.verbose = plgslam.verbose
-        self.renderer = plgslam.renderer
-        self.gt_c2w_list = plgslam.gt_c2w_list
-        self.mapping_idx = plgslam.mapping_idx
-        self.mapping_cnt = plgslam.mapping_cnt
-        self.estimate_c2w_list = plgslam.estimate_c2w_list
-        self.truncation = plgslam.truncation
+        self.idx = eslam.idx
+        self.bound = eslam.bound
+        self.mesher = eslam.mesher
+        self.output = eslam.output
+        self.verbose = eslam.verbose
+        self.renderer = eslam.renderer
+        self.gt_c2w_list = eslam.gt_c2w_list
+        self.mapping_idx = eslam.mapping_idx
+        self.mapping_cnt = eslam.mapping_cnt
+        # self.shared_decoders = eslam.shared_decoders
+
+        self.estimate_c2w_list = eslam.estimate_c2w_list
+        self.truncation = eslam.truncation
 
         self.cam_lr_T = cfg['tracking']['lr_T']
         self.cam_lr_R = cfg['tracking']['lr_R']
@@ -52,8 +52,6 @@ class Tracker(object):
         self.w_depth = cfg['tracking']['w_depth']
         self.w_color = cfg['tracking']['w_color']
         self.w_smooth = cfg['mapping']['w_smooth']
-        #self.sdf_weight = cfg['mapping']['sdf_weight']
-        #self.fs_weight = cfg['mapping']['fs_weight']
         self.ignore_edge_W = cfg['tracking']['ignore_edge_W']
         self.ignore_edge_H = cfg['tracking']['ignore_edge_H']
         self.const_speed_assumption = cfg['tracking']['const_speed_assumption']
@@ -71,19 +69,19 @@ class Tracker(object):
                                            vis_dir=os.path.join(self.output, 'tracking_vis'), renderer=self.renderer,
                                            truncation=self.truncation, verbose=self.verbose, device=self.device)
 
-        self.H, self.W, self.fx, self.fy, self.cx, self.cy = plgslam.H, plgslam.W, plgslam.fx, plgslam.fy, plgslam.cx, plgslam.cy
+        self.H, self.W, self.fx, self.fy, self.cx, self.cy = eslam.H, eslam.W, eslam.fx, eslam.fy, eslam.cx, eslam.cy
 
-        self.embedpos_fn = plgslam.shared_embedpos_fn
+        self.embedpos_fn = eslam.shared_embedpos_fn
+        #self.embedpos_fn = eslam.embedpos_fn
 
-        self.shared_all_planes_list = plgslam.shared_all_planes_list
-        self.shared_decoders_list = plgslam.shared_decoders_list
-        self.shared_cur_rf_id = plgslam.shared_cur_rf_id
+        self.shared_all_planes_list = eslam.shared_all_planes_list
+        self.shared_decoders_list = eslam.shared_decoders_list
+        self.shared_cur_rf_id = eslam.shared_cur_rf_id
         self.pre_shared_cur_rf_id = self.shared_cur_rf_id[0].clone()
         self.update_para_flag = 1
 
         #self.all_planes_list = copy.deepcopy(self.shared_all_planes_list)
         self.planes_xy, self.planes_xz, self.planes_yz, self.c_planes_xy, self.c_planes_xz, self.c_planes_yz = copy.deepcopy(self.shared_all_planes_list[self.shared_cur_rf_id[0]])
-        #self.planes_xy, self.planes_xz, self.planes_yz = copy.deepcopy(self.shared_all_planes_list[self.shared_cur_rf_id[0]])
 
         for planes in [self.planes_xy, self.planes_xz, self.planes_yz]:
             for i, plane in enumerate(planes):
@@ -98,7 +96,7 @@ class Tracker(object):
                 c_planes[i] = plane
         #self.decoders_list = copy.deepcopy(self.shared_decoders_list)
 
-        self.shared_decoders = plgslam.shared_decoders_list[self.shared_cur_rf_id[0]]
+        self.shared_decoders = eslam.shared_decoders_list[self.shared_cur_rf_id[0]]
         self.decoders = copy.deepcopy(self.shared_decoders).to(self.device)
      #  # ##########################
         for p in self.decoders.parameters():
@@ -141,62 +139,6 @@ class Tracker(object):
 
         return sdf_losses
 
-    def get_masks(self, z_vals, target_d, truncation):
-        '''
-        Params:
-            z_vals: torch.Tensor, (Bs, N_samples)
-            target_d: torch.Tensor, (Bs,)
-            truncation: float
-        Return:
-            front_mask: torch.Tensor, (Bs, N_samples)
-            sdf_mask: torch.Tensor, (Bs, N_samples)
-            fs_weight: float
-            sdf_weight: float
-        '''
-
-        # before truncation
-        # front_mask = torch.where(z_vals < (target_d - truncation), torch.ones_like(z_vals), torch.zeros_like(z_vals))
-        front_mask = torch.where(z_vals < (target_d - truncation).unsqueeze(1), torch.ones_like(z_vals),
-                                 torch.zeros_like(z_vals))
-
-        # after truncation
-        back_mask = torch.where(z_vals > (target_d + truncation).unsqueeze(1), torch.ones_like(z_vals),
-                                torch.zeros_like(z_vals))
-        # valid mask
-        depth_mask = torch.where(target_d > 0.0, torch.ones_like(target_d), torch.zeros_like(target_d))
-        # Valid sdf regionn
-        # sdf_mask = (1.0 - front_mask) * (1.0 - back_mask) * depth_mask
-
-        sdf_mask = (1.0 - front_mask) * (1.0 - back_mask) * depth_mask.unsqueeze(1)
-
-        num_fs_samples = torch.count_nonzero(front_mask)
-        num_sdf_samples = torch.count_nonzero(sdf_mask)
-        num_samples = num_sdf_samples + num_fs_samples
-        fs_weight = 1.0 - num_fs_samples / num_samples
-        sdf_weight = 1.0 - num_sdf_samples / num_samples
-
-        return front_mask, sdf_mask, fs_weight, sdf_weight
-
-    def get_sdf_loss(self, z_vals, target_d, predicted_sdf):
-        '''
-        Params:
-            z_vals: torch.Tensor, (Bs, N_samples)
-            target_d: torch.Tensor, (Bs,)
-            predicted_sdf: torch.Tensor, (Bs, N_samples)
-            truncation: float
-        Return:
-            fs_loss: torch.Tensor, (1,)
-            sdf_loss: torch.Tensor, (1,)
-        '''
-        front_mask, sdf_mask, fs_weight, sdf_weight = self.get_masks(z_vals, target_d, self.truncation)
-
-        fs_loss = F.mse_loss(predicted_sdf * front_mask, torch.ones_like(predicted_sdf) * front_mask) * fs_weight
-        # sdf_loss = F.mse_loss((z_vals + predicted_sdf * self.truncation) * sdf_mask, target_d * sdf_mask) * sdf_weight
-
-        sdf_loss = F.mse_loss((z_vals + predicted_sdf * self.truncation) * sdf_mask,
-                              target_d.unsqueeze(1) * sdf_mask) * sdf_weight.unsqueeze(-1)
-        return fs_loss, sdf_loss
-
     def smoothness_losses(self, all_planes, sample_points=256, voxel_size=0.1, margin=0.05,color=False):
         '''
         Smoothness loss of feature grid
@@ -218,7 +160,6 @@ class Tracker(object):
         inputs_flat = torch.reshape(pts_tcnn, [-1, pts_tcnn.shape[-1]])
         embed_pos = self.embedpos_fn(inputs_flat)
         sdf = self.decoders.query_sdf(pts_tcnn, embed_pos, all_planes)
-        #sdf = self.decoders.query_sdf_embed(pts_tcnn, embed=True)
 
         tv_x = torch.pow(sdf[1:, ...] - sdf[:-1, ...], 2).sum()
         tv_y = torch.pow(sdf[:, 1:, ...] - sdf[:, :-1, ...], 2).sum()
@@ -243,12 +184,8 @@ class Tracker(object):
         Returns:
             loss (float): The value of loss.
         """
-        ##########################
         all_planes = (self.planes_xy, self.planes_xz, self.planes_yz, self.c_planes_xy, self.c_planes_xz, self.c_planes_yz)
-        # all_planes_global = (
-        # self.planes_xy_global, self.planes_xz_global, self.planes_yz_global, self.c_planes_xy_global,
-        # self.c_planes_xz_global, self.c_planes_yz_global)
-        ##########################
+
         device = self.device
         H, W, fx, fy, cx, cy = self.H, self.W, self.fx, self.fy, self.cx, self.cy
 
@@ -273,18 +210,14 @@ class Tracker(object):
         batch_rays_o = batch_rays_o[inside_mask]
         batch_gt_depth = batch_gt_depth[inside_mask]
         batch_gt_color = batch_gt_color[inside_mask]
-#######################################
+
         depth, color, sdf, z_vals = self.renderer.render_batch_ray(all_planes, self.decoders, batch_rays_d, batch_rays_o,
                                                                    self.device, self.truncation, gt_depth=batch_gt_depth)
-##################################
+
         ## Filtering the rays for which the rendered depth error is greater than 10 times of the median depth error
         depth_error = (batch_gt_depth - depth.detach()).abs()
         error_median = depth_error.median()
         depth_mask = (depth_error < 10 * error_median)
-
-        #fs_loss, sdf_loss = self.get_sdf_loss(z_vals[depth_mask], batch_gt_depth[depth_mask], sdf[depth_mask])
-        #loss = self.sdf_weight * sdf_loss
-        #loss += self.fs_weight * fs_loss
 
         ## SDF losses
         loss = self.sdf_losses(sdf[depth_mask], z_vals[depth_mask], batch_gt_depth[depth_mask])
@@ -316,41 +249,9 @@ class Tracker(object):
             if self.verbose:
                 print('Tracking: update the parameters from mapping')
 
-            #self.cur_rf_id = self.shared_cur_rf_id[0].clone()
-            # self.decoders_list = copy.deepcopy(self.shared_decoders_list)
-            # self.decoders = copy.deepcopy(self.shared_decoders)
-            # for p in self.decoders.parameters():
-            #     p.requires_grad_(False)
-            #print(self.shared_cur_rf_id[0])
-
-            #self.decoders = copy.deepcopy(self.shared_decoders_list[self.cur_rf_id])
-            #self.decoders.load_state_dict(self.shared_decoders_list[self.shared_cur_rf_id[0]].state_dict())
-###########################
             self.decoders.load_state_dict(self.shared_decoders_list[self.shared_cur_rf_id[0]].state_dict())
-            ##########################
-            #print(len(self.shared_decoders_list))
-            #for p in self.decoders.parameters():
-                #p.requires_grad_(False)
-            #self.decoders = self.decoders.to(self.device)
-
-            # self.decoders = copy.deepcopy(self.shared_decoders)
-            # self.decoders = copy.deepcopy(self.shared_decoders_list[self.cur_rf_id])
-            # self.decoders = self.decoders.to(self.device)
-            # for p in self.decoders.parameters():
-            #     p.requires_grad_(False)
-            #
-            # self.decoders.load_state_dict(self.decoders.state_dict())
-
-            #shared_all_planes = self.shared_all_planes_list[self.shared_cur_rf_id[0]]
-        ##########################
             shared_all_planes = self.shared_all_planes_list[self.shared_cur_rf_id[0]]
             self.shared_planes_xy, self.shared_planes_xz, self.shared_planes_yz, self.shared_c_planes_xy, self.shared_c_planes_xz, self.shared_c_planes_yz = shared_all_planes
-            #self.shared_planes_xy, self.shared_planes_xz, self.shared_planes_yz = shared_all_planes
-
-            ##########################
-            #print(len(self.shared_all_planes_list))
-            # all_planes = self.shared_all_planes_list[self.cur_rf_id]
-            # self.planes_xy, self.planes_xz, self.planes_yz, self.c_planes_xy, self.c_planes_xz, self.c_planes_yz = all_planes
 
             for planes, self_planes in zip(
                     [self.shared_planes_xy, self.shared_planes_xz, self.shared_planes_yz],
@@ -358,26 +259,12 @@ class Tracker(object):
                 for i, plane in enumerate(planes):
                     self_planes[i] = plane.detach().to(self.device)
 
-            # for c_planes, self_c_planes in zip(
-            #         [self.shared_c_planes_xy, self.shared_c_planes_xz, self.shared_c_planes_yz],
-            #         [self.c_planes_xy, self.c_planes_xz, self.c_planes_yz]):
-            #     for i, c_plane in enumerate(c_planes):
-            #         self_c_planes[i] = c_plane.detach().to(self.device)
-            # list中的self.shared_planes_xy不会被移到gpu吗
-         ##########################
-            # # global planes
-            # for planes_global, self_planes_global in zip(
-            #         [self.shared_planes_xy_global, self.shared_planes_xz_global, self.shared_planes_yz_global],
-            #         [self.planes_xy_global, self.planes_xz_global, self.planes_yz_global]):
-            #     for i, plane_global in enumerate(planes_global):
-            #         self_planes_global[i] = plane_global.detach()
-            #
-            # for c_planes_global, self_c_planes_global in zip(
-            #         [self.shared_c_planes_xy_global, self.shared_c_planes_xz_global, self.shared_c_planes_yz_global],
-            #         [self.c_planes_xy_global, self.c_planes_xz_global, self.c_planes_yz_global]):
-            #     for i, c_plane_global in enumerate(c_planes_global):
-            #         self_c_planes_global[i] = c_plane_global.detach()
-         ##########################
+            for c_planes, self_c_planes in zip(
+                    [self.shared_c_planes_xy, self.shared_c_planes_xz, self.shared_c_planes_yz],
+                    [self.c_planes_xy, self.c_planes_xz, self.c_planes_yz]):
+                for i, c_plane in enumerate(c_planes):
+                    self_c_planes[i] = c_plane.detach().to(self.device)
+
             self.prev_mapping_idx = self.mapping_idx[0].clone()
 
 
@@ -392,11 +279,7 @@ class Tracker(object):
                 None
         """
         device = self.device
-    ##########################
-        #all_planes = (self.planes_xy, self.planes_xz, self.planes_yz, self.c_planes_xy, self.c_planes_xz, self.c_planes_yz)
-        # all_planes_global = (self.planes_xy_global, self.planes_xz_global, self.planes_yz_global, self.c_planes_xy_global,
-        # self.c_planes_xz_global, self.c_planes_yz_global)
-    ##########################
+
         if self.verbose:
             pbar = self.frame_loader
         else:
@@ -417,7 +300,6 @@ class Tracker(object):
                     time.sleep(0.001)
                 pre_c2w = self.estimate_c2w_list[idx - 1].unsqueeze(0).to(device)
 
-         ##########################
                 self.update_para_flag = 1
 
             if self.pre_shared_cur_rf_id != self.shared_cur_rf_id[0]:
@@ -430,19 +312,17 @@ class Tracker(object):
             self.pre_shared_cur_rf_id = self.shared_cur_rf_id[0].clone()
 
             all_planes = (self.planes_xy, self.planes_xz, self.planes_yz, self.c_planes_xy, self.c_planes_xz, self.c_planes_yz)
-         ##########################
+
             if self.verbose:
                 print(Fore.MAGENTA)
                 print("Tracking Frame ",  idx.item())
                 print(Style.RESET_ALL)
 
             if idx == 0 or self.gt_camera:
-            #if idx <= 1500 or self.gt_camera:
                 c2w = gt_c2w
                 if not self.no_vis_on_first_frame:
-        ##########################
                     self.visualizer.save_imgs(idx, 0, gt_depth, gt_color, c2w.squeeze(), all_planes, self.decoders)
-        ##########################
+
             else:
                 if self.const_speed_assumption and idx - 2 >= 0:
                     ## Linear prediction for initialization
@@ -463,9 +343,8 @@ class Tracker(object):
                 current_min_loss = torch.tensor(float('inf')).float().to(device)
                 for cam_iter in range(self.num_cam_iters):
                     cam_pose = torch.cat([R, T], -1)
-            ##########################
                     self.visualizer.save_imgs(idx, cam_iter, gt_depth, gt_color, cam_pose, all_planes, self.decoders)
-             ##########################
+
                     loss = self.optimize_tracking(cam_pose, gt_color, gt_depth, self.tracking_pixels, optimizer_camera)
                     if loss < current_min_loss:
                         current_min_loss = loss

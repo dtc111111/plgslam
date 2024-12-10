@@ -1,6 +1,4 @@
-
 import glob
-import json
 import os
 
 import cv2
@@ -9,7 +7,6 @@ import torch
 import torch.nn.functional as F
 from src.common import as_intrinsics_matrix
 from torch.utils.data import Dataset, Sampler
-from pathlib import Path
 
 class SeqSampler(Sampler):
     """
@@ -62,7 +59,6 @@ class BaseDataset(Dataset):
         depth_path = self.depth_paths[index]
         color_data = cv2.imread(color_path)
         depth_data = cv2.imread(depth_path, cv2.IMREAD_UNCHANGED)
-
         if self.distortion is not None:
             K = as_intrinsics_matrix([self.fx, self.fy, self.cx, self.cy])
             # undistortion is only applied on color image, not depth!
@@ -70,9 +66,7 @@ class BaseDataset(Dataset):
 
         color_data = cv2.cvtColor(color_data, cv2.COLOR_BGR2RGB)
         color_data = color_data / 255.
-
         depth_data = depth_data.astype(np.float32) / self.png_depth_scale
-
         H, W = depth_data.shape
         color_data = cv2.resize(color_data, (W, H))
         color_data = torch.from_numpy(color_data)
@@ -125,6 +119,7 @@ class ScanNet(BaseDataset):
     def __init__(self, cfg, args, scale, device='cuda:0'
                  ):
         super(ScanNet, self).__init__(cfg, args, scale, device)
+        # self.input_folder = os.path.join(self.input_folder, 'frames')
         self.color_paths = sorted(glob.glob(os.path.join(
             self.input_folder, 'color', '*.jpg')), key=lambda x: int(os.path.basename(x)[:-4]))
         self.depth_paths = sorted(glob.glob(os.path.join(
@@ -181,6 +176,7 @@ class TUM_RGBD(BaseDataset):
                     associations.append((i, j, k))
 
         return associations
+
     def loadtum(self, datapath, frame_rate=-1):
         """ read video data in tum-rgbd format """
         if os.path.isfile(os.path.join(datapath, 'groundtruth.txt')):
@@ -247,18 +243,10 @@ class Azure(BaseDataset):
             glob.glob(os.path.join(self.input_folder, 'depth', '*.png')))
         self.n_img = len(self.color_paths)
         self.load_poses(os.path.join(
-            #self.input_folder, 'scene', 'trajectory.log'))
-            self.input_folder, 'scene', '_.log')) #when using coslam bound
+            self.input_folder, 'scene', 'trajectory.log'))
 
     def load_poses(self, path):
-        principal_inertia_transform = np.array([[-0.14031718, -0.875229  , -0.46290958,  0.75258389],
-                                                [ 0.217254  , -0.48335774,  0.84803655,  0.32966271],
-                                                [-0.96597712,  0.01842514,  0.2579704 ,  3.28585226],
-                                                [ 0.        ,  0.        ,  0.        ,  1.        ]])
-        principal_inertia_transform[:3, 1] *= -1
-        principal_inertia_transform[:3, 2] *= -1
         self.poses = []
-
         if os.path.exists(path):
             with open(path) as f:
                 content = f.readlines()
@@ -266,9 +254,9 @@ class Azure(BaseDataset):
                 # Load .log file.
                 for i in range(0, len(content), 5):
                     # format %d (src) %d (tgt) %f (fitness)
-                    # data = list(map(float, content[i].strip().split(' ')))
-                    # ids = (int(data[0]), int(data[1]))
-                    # fitness = data[2]
+                    data = list(map(float, content[i].strip().split(' ')))
+                    ids = (int(data[0]), int(data[1]))
+                    fitness = data[2]
 
                     # format %f x 16
                     c2w = np.array(
@@ -281,70 +269,14 @@ class Azure(BaseDataset):
                     self.poses.append(c2w)
         else:
             for i in range(self.n_img):
-                c2w = principal_inertia_transform
-                c2w = torch.from_numpy(c2w).float() + 1e-5
+                c2w = np.eye(4)
+                c2w = torch.from_numpy(c2w).float()
                 self.poses.append(c2w)
 
-class Indoor(BaseDataset):
-    def __init__(self, cfg, args, scale, device='cuda:0'
-                 ):
-        super(Indoor, self).__init__(cfg, args, scale, device)
-        self.color_paths = sorted(
-            glob.glob(os.path.join(self.input_folder, 'images', '*.jpg')))
-
-        self.depth_paths = sorted(
-            glob.glob(os.path.join(self.input_folder, 'dpt', 'depth_*.npz')))
-        self.n_img = len(self.color_paths)
-        with open(os.path.join(self.input_folder, "transforms.json"), 'r') as f:
-            self.transforms = json.load(f)
-        self.image_paths = [os.path.basename(frame_meta["file_path"]) for frame_meta in self.transforms["frames"]]
-        self.image_paths = sorted(self.image_paths)
-        poses_dict = {os.path.basename(frame_meta["file_path"]): frame_meta["transform_matrix"] for frame_meta in
-                      self.transforms["frames"]}
-        self.poses = []
-        for idx, image_path in enumerate(self.image_paths):
-            pose = torch.tensor(poses_dict[image_path], dtype=torch.float32)
-            # pose[:3, 1] *= -1
-            # pose[:3, 2] *= -1
-
-            self.poses.append(pose)
-        self.poses = torch.stack(self.poses, dim=0)
-
-class SevenScenes(BaseDataset):
-    def __init__(self, cfg, args, scale, device="cuda:0"):
-        super(SevenScenes, self).__init__(cfg, args, scale, device)
-
-        self.color_paths, self.depth_paths, self.poses = self.load7scenes(self.input_folder)
-
-        self.gt_depth_paths = None
-
-        self.n_img = len(self.color_paths)
-
-    def load7scenes(self, data_path):
-        """Read video data in 7-Scenes format."""
-
-        data_path = Path(data_path)
-
-        image_list = sorted([str(data_file) for data_file in data_path.glob("*.color.png")])
-        depth_list = sorted([str(data_file) for data_file in data_path.glob("*.depth.png")])
-        pose_list = sorted([str(data_file) for data_file in data_path.glob("*.pose.txt")])
-
-        poses = []
-
-        for pose_file in pose_list:
-            c2w = np.loadtxt(pose_file)
-            c2w[:3, 1] *= -1
-            c2w[:3, 2] *= -1
-            c2w = torch.from_numpy(c2w).float()
-            poses += [c2w]
-
-        return image_list, depth_list, poses
 
 dataset_dict = {
     "replica": Replica,
     "scannet": ScanNet,
     "tumrgbd": TUM_RGBD,
     "azure": Azure,
-    "indoor": Indoor,
-    "7Scenes": SevenScenes,
 }

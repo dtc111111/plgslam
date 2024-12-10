@@ -25,7 +25,7 @@ tracking:
   lr_T: 0.001
   lr_R: 0.001
   pixels: 2000
-  iters: 30 ###########8
+  iters: 8
   w_sdf_fs: 10
   w_sdf_center: 200
   w_sdf_tail: 50
@@ -42,19 +42,14 @@ mapping:
   vis_inside_freq: 400 #each iteration
   mesh_freq: 4000
   ckpt_freq: 500
-  keyframe_every: 5
-  res_keyframe: 50 ###################################################
-  gb_keyframe: 50  ############
-  res_every: 10
-  color_samples: 50
-  depth_samples: 50  ###########################################################3
+  keyframe_every: 4
   mapping_window_size: 20
   keyframe_selection_method: 'overlap'
   lr_first_factor: 5
   lr_factor: 1
   pixels: 4000
   iters_first: 1000
-  iters: 15 ###############15
+  iters: 15
   w_sdf_fs: 5
   w_sdf_center: 200
   w_sdf_tail: 10

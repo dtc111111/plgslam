@@ -1,9 +1,9 @@
-
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from src.common import normalize_3d_coordinate
+import torch
+import torch.nn as nn
 import tinycudann as tcnn
 
 
@@ -124,12 +124,10 @@ class Decoders(nn.Module):
     """
 
     def __init__(self, config, input_ch=3, input_ch_pos=12, learnable_beta=True):
-    #def __init__(self, config, input_ch=3, input_ch_pos=12):
         super(Decoders, self).__init__()
         self.config = config
         self.color_net = ColorNet(config,
                                   input_ch=input_ch + input_ch_pos,
-                                  #input_ch=input_ch_pos,
                                   geo_feat_dim=config['decoder']['geo_feat_dim'],
                                   hidden_dim_color=config['decoder']['hidden_dim_color'],
                                   num_layers_color=config['decoder']['num_layers_color'])
@@ -142,25 +140,6 @@ class Decoders(nn.Module):
             self.beta = nn.Parameter(10 * torch.ones(1))
         else:
             self.beta = 10
-
-    # def __init__(self, config, input_ch=3, input_ch_pos=12, learnable_beta=True):
-    #     super(Decoders, self).__init__()
-    #     self.config = config
-    #     self.color_net = ColorNet(config,
-    #                               input_ch=input_ch_pos,
-    #                               geo_feat_dim=config['decoder']['geo_feat_dim'],
-    #                               hidden_dim_color=config['decoder']['hidden_dim_color'],
-    #                               num_layers_color=config['decoder']['num_layers_color'])
-    #     self.sdf_net = SDFNet(config,
-    #                           input_ch=input_ch + input_ch_pos,
-    #                           geo_feat_dim=config['decoder']['geo_feat_dim'],
-    #                           hidden_dim=config['decoder']['hidden_dim'],
-    #                           num_layers=config['decoder']['num_layers'])
-    #     if learnable_beta:
-    #         self.beta = nn.Parameter(10 * torch.ones(1))
-    #     else:
-    #         self.beta = 10
-
 
     def sample_plane_feature(self, p_nor, planes_xy, planes_xz, planes_yz):
         """
@@ -190,9 +169,17 @@ class Decoders(nn.Module):
     def query_sdf(self, p, embed_pos, all_planes):
         p_nor = normalize_3d_coordinate(p.clone(), self.bound)
 
+        # planes_xy, planes_xz, planes_yz, c_planes_xy, c_planes_xz, c_planes_yz = all_planes
+        #
+        # planes_xy_global, planes_xz_global, planes_yz_global, c_planes_xy_global, c_planes_xz_global, c_planes_yz_global = all_planes_global
+        #
+        # feat_local = self.sample_plane_feature(p_nor, planes_xy, planes_xz, planes_yz)
+        # feat_global = self.sample_plane_feature(p_nor, planes_xy_global, planes_xz_global, planes_yz_global)
+        #
+        # feat = torch.cat((feat_global, feat_local), dim=-1)
+        # #feat = self.sample_plane_feature(p_nor, planes_xy, planes_xz, planes_yz)
         planes_xy, planes_xz, planes_yz, c_planes_xy, c_planes_xz, c_planes_yz = all_planes
-
-        feat = self.sample_plane_feature(p_nor, planes_xy, planes_xz, planes_yz)
+        feat = self.sample_plane_feature(p_nor, planes_xy, planes_xz, planes_yz)  # ?
 
         h = self.sdf_net(torch.cat([feat, embed_pos], dim=-1), return_geo=True)
         sdf, geo_feat = h[..., :1], h[..., 1:]
@@ -212,33 +199,29 @@ class Decoders(nn.Module):
         p_shape = p.shape
         p_nor = normalize_3d_coordinate(p.clone(), self.bound)
 
+        # planes_xy, planes_xz, planes_yz, c_planes_xy, c_planes_xz, c_planes_yz = all_planes
+
+        # planes_xy_global, planes_xz_global, planes_yz_global, c_planes_xy_global, c_planes_xz_global, c_planes_yz_global = all_planes_global
+        # feat_local = self.sample_plane_feature(p_nor, planes_xy, planes_xz, planes_yz)
+        # feat_global = self.sample_plane_feature(p_nor, planes_xy_global, planes_xz_global, planes_yz_global)
+        # # feat = torch.cat((feat_local, feat_global), dim=-1)
+        # feat = torch.cat((feat_global, feat_local), dim=-1)
+        #
+        # c_feat_local = self.sample_plane_feature(p_nor, c_planes_xy, c_planes_xz, c_planes_yz)
+        # c_feat_global = self.sample_plane_feature(p_nor, c_planes_xy_global, c_planes_xz_global, c_planes_yz_global)
+        # # c_feat = torch.cat((c_feat_local, c_feat_global), dim=-1)
+        # c_feat = torch.cat((c_feat_global, c_feat_local), dim=-1)
         planes_xy, planes_xz, planes_yz, c_planes_xy, c_planes_xz, c_planes_yz = all_planes
-        #planes_xy, planes_xz, planes_yz = all_planes
         feat = self.sample_plane_feature(p_nor, planes_xy, planes_xz, planes_yz)
         c_feat = self.sample_plane_feature(p_nor, c_planes_xy, c_planes_xz, c_planes_yz)
 
-        # print(feat.shape)
-        # print(embed_pos.shape)
-
+        #h = self.sdf_net(torch.cat([feat, embed_pos], dim=-1), return_geo=True)
         h = self.sdf_net(torch.cat([feat, embed_pos], dim=-1), return_geo=True)
-
         sdf, geo_feat = h[..., :1], h[..., 1:]
-
         rgb = self.color_net(torch.cat([embed_pos, c_feat, geo_feat], dim=-1))
-        #rgb = self.color_net(torch.cat([embed_pos, geo_feat], dim=-1))
-
-        # planes_xy, planes_xz, planes_yz, c_planes_xy, c_planes_xz, c_planes_yz = all_planes
-        # feat = self.sample_plane_feature(p_nor, planes_xy, planes_xz, planes_yz)
-        # h = self.sdf_net(torch.cat([feat, embed_pos], dim=-1), return_geo=True)
-        # sdf, geo_feat = h[..., :1], h[..., 1:]
-        # rgb = self.color_net(torch.cat([embed_pos, geo_feat], dim=-1))
         #sdf = torch.tanh(sdf)
-
         rgb = torch.sigmoid(rgb)
         raw = torch.cat([rgb, sdf], dim=-1)
         raw = raw.reshape(*p_shape[:-1], -1)
         return raw
-
-
-
 

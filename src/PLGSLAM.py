@@ -1,4 +1,3 @@
-
 import os
 import time
 
@@ -14,13 +13,20 @@ from src.Tracker import Tracker
 from src.utils.datasets import get_dataset
 from src.utils.Logger import Logger
 from src.utils.Mesher import Mesher
-#from src.utils.merge_mesh_1 import M_Mesher
 from src.utils.Renderer import Renderer
 from src.networks.encodings import get_encoder
+#from src.networks.co_decoder import ColorSDFNet,ColorSDFNet_v2
 
 torch.multiprocessing.set_sharing_strategy('file_system')
 
 class PLGSLAM():
+    """
+    PLGSLAM main class.
+    Mainly allocate shared resources, and dispatch mapping and tracking processes.
+    Args:
+        cfg (dict): config dict
+        args (argparse.Namespace): arguments
+    """
 
     def __init__(self, cfg, args):
 
@@ -48,7 +54,7 @@ class PLGSLAM():
         self.get_encoding(cfg)
 
         self.shared_embedpos_fn = self.embedpos_fn
-        self.shared_input_ch_pos = self.input_ch_pos  ################################not used
+        self.shared_input_ch_pos = self.input_ch_pos
 
         self.scale = cfg['scale']
 
@@ -82,8 +88,11 @@ class PLGSLAM():
 
         manager = mp.Manager()
         self.shared_all_planes_list = manager.list()
-
+        #self.all_planes_global_list = manager.list()
+        #self.shared_decoders_list = []
         self.shared_decoders_list = manager.list()
+        # #self.shared_all_planes_list.share_memory_()
+        #self.shared_decoders_list = nn.ParameterList([])
 
         self.shared_cur_rf_id = torch.zeros((1)).int()
         self.shared_cur_rf_id.share_memory_()
@@ -93,7 +102,6 @@ class PLGSLAM():
 
         self.renderer = Renderer(cfg, self)
         self.mesher = Mesher(cfg, args, self)
-
         self.logger = Logger(self)
         self.mapper = Mapper(cfg, args, self)
         self.tracker = Tracker(cfg, args, self)
@@ -116,7 +124,7 @@ class PLGSLAM():
 
     def update_cam(self):
         """
-        Update the camera intrinsics according to pre-processing config,
+        Update the camera intrinsics according to pre-processing config, 
         such as resize or edge crop.
         """
         # resize the input images to crop_size (variable name used in lietorch)
@@ -150,30 +158,67 @@ class PLGSLAM():
         self.bound = torch.from_numpy(np.array(cfg['mapping']['bound'])*self.scale).float()
         bound_dividable = cfg['planes_res']['bound_dividable']
         # enlarge the bound a bit to allow it dividable by bound_dividable
-
+        # for bound in self.bound:
+        #     bound[:, 1] = (((bound[:, 1] - bound[:, 0]) /
+        #                     bound_dividable).int() + 1) * bound_dividable + bound[:, 0]
         self.bound[:, 1] = (((self.bound[:, 1]-self.bound[:, 0]) /
                             bound_dividable).int()+1)*bound_dividable+self.bound[:, 0]
+        #self.shared_decoders.bound = self.bound
 
 
-    def init_planes(self, cfg, planes_type): #notused?
+    def init_planes(self, cfg, planes_type):
         """
         Initialize the feature planes.
 
         Args:
             cfg (dict): parsed config dict.
         """
-
+        # self.coarse_planes_res = cfg['planes_res']['coarse']
+        # self.fine_planes_res = cfg['planes_res']['fine']
+        # self.coarse_c_planes_res = cfg['c_planes_res']['coarse']
+        # self.fine_c_planes_res = cfg['c_planes_res']['fine']
+        #
+        # if planes_type == 'global_plane':
+        #     planes_res = self.coarse_planes_res
+        #     c_planes_res = self.coarse_c_planes_res
+        #
+        # elif planes_type == 'local_plane':
+        #     planes_res = self.fine_planes_res
+        #     c_planes_res = self.fine_c_planes_res
         self.coarse_planes_res = cfg['planes_res']['coarse']
         self.fine_planes_res = cfg['planes_res']['fine']
+
+        self.coarse_c_planes_res = cfg['c_planes_res']['coarse']
+        self.fine_c_planes_res = cfg['c_planes_res']['fine']
 
         c_dim = cfg['model']['c_dim']
         xyz_len = self.bound[:, 1]-self.bound[:, 0]
 
         ####### Initializing Planes ############
         planes_xy, planes_xz, planes_yz = [], [], []
+        c_planes_xy, c_planes_xz, c_planes_yz = [], [], []
         planes_res = [self.coarse_planes_res, self.fine_planes_res]
+        c_planes_res = [self.coarse_c_planes_res, self.fine_c_planes_res]
 
         planes_dim = c_dim
+        #
+        # grid_shape = list(map(int, (xyz_len / planes_res).tolist()))
+        # grid_shape[0], grid_shape[2] = grid_shape[2], grid_shape[0]
+        # # planes_xy = torch.empty([1, planes_dim, *grid_shape[1:]]).normal_(mean=0, std=0.01)
+        # # planes_xz = torch.empty([1, planes_dim, grid_shape[0], grid_shape[2]]).normal_(mean=0, std=0.01)
+        # # planes_yz = torch.empty([1, planes_dim, *grid_shape[:2]]).normal_(mean=0, std=0.01)
+        # planes_xy.append(torch.empty([1, planes_dim, *grid_shape[1:]]).normal_(mean=0, std=0.01))
+        # planes_xz.append(torch.empty([1, planes_dim, grid_shape[0], grid_shape[2]]).normal_(mean=0, std=0.01))
+        # planes_yz.append(torch.empty([1, planes_dim, *grid_shape[:2]]).normal_(mean=0, std=0.01))
+        #
+        # grid_shape = list(map(int, (xyz_len / c_planes_res).tolist()))
+        # grid_shape[0], grid_shape[2] = grid_shape[2], grid_shape[0]
+        # # c_planes_xy = torch.empty([1, planes_dim, *grid_shape[1:]]).normal_(mean=0, std=0.01)
+        # # c_planes_xz = torch.empty([1, planes_dim, grid_shape[0], grid_shape[2]]).normal_(mean=0, std=0.01)
+        # # c_planes_yz = torch.empty([1, planes_dim, *grid_shape[:2]]).normal_(mean=0, std=0.01)
+        # c_planes_xy.append(torch.empty([1, planes_dim, *grid_shape[1:]]).normal_(mean=0, std=0.01))
+        # c_planes_xz.append(torch.empty([1, planes_dim, grid_shape[0], grid_shape[2]]).normal_(mean=0, std=0.01))
+        # c_planes_yz.append(torch.empty([1, planes_dim, *grid_shape[:2]]).normal_(mean=0, std=0.01))
 
         for grid_res in planes_res:
             grid_shape = list(map(int, (xyz_len / grid_res).tolist()))
@@ -182,6 +227,20 @@ class PLGSLAM():
             planes_xz.append(torch.empty([1, planes_dim, grid_shape[0], grid_shape[2]]).normal_(mean=0, std=0.01))
             planes_yz.append(torch.empty([1, planes_dim, *grid_shape[:2]]).normal_(mean=0, std=0.01))
 
+        for grid_res in c_planes_res:
+            grid_shape = list(map(int, (xyz_len / grid_res).tolist()))
+            grid_shape[0], grid_shape[2] = grid_shape[2], grid_shape[0]
+            c_planes_xy.append(torch.empty([1, planes_dim, *grid_shape[1:]]).normal_(mean=0, std=0.01))
+            c_planes_xz.append(torch.empty([1, planes_dim, grid_shape[0], grid_shape[2]]).normal_(mean=0, std=0.01))
+            c_planes_yz.append(torch.empty([1, planes_dim, *grid_shape[:2]]).normal_(mean=0, std=0.01))
+
+        # self.shared_planes_xy_global = planes_xy
+        # self.shared_planes_xz_global = planes_xz
+        # self.shared_planes_yz_global = planes_yz
+        #
+        # self.shared_c_planes_xy_global = c_planes_xy
+        # self.shared_c_planes_xz_global = c_planes_xz
+        # self.shared_c_planes_yz_global = c_planes_yz
 
     def tracking(self, rank):
         """

@@ -12,14 +12,13 @@ tracking:
   vis_freq: 100
   vis_inside_freq: 25
 mapping:
-  gb_keyframe: 50000  #not use gb
   pixels: 4000
   iters: 30
   max_drift: 3 #just for test
   vis_freq: 100
   vis_inside_freq: 30
   n_pixels: 0.05
-  w_smooth: 0
+  w_smooth: 0.001
 cam: 
   H: 480 
   W: 640

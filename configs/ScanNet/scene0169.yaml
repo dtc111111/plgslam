@@ -5,6 +5,4 @@ mapping:
   max_drift: 4 #just for test
 data:
   input_folder: /data0/dataset/ScanNet/scans/scene0169_00
-  #input_folder: /data0/dataset/ScanNet/scans/scene0169_00
-  #output: output/scannet/scans/scene0169_00_smooth_max4
-  output: output/scannet/scans/scene0169_00_0526
+  output: output/scannet/scans/scene0169_00_smooth_max4

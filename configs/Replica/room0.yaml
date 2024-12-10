@@ -2,9 +2,9 @@ inherit_from: configs/Replica/replica.yaml
 mapping:
   bound: [[-1.9,7.9],[-2.2,4.5],[-2.5,2.3]]
   marching_cubes_bound: [[-1.9,7.9],[-2.2,4.5],[-2.5,2.3]]
-  every_frame: 5
+
 data:
   input_folder: /data0/dataset/Replica/room0
-  output: output/Replica/room0/0530
+  output: output/Replica/room0/1210_append2
   trainskip: 1
 

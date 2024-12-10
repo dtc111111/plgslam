@@ -3,12 +3,5 @@ mapping:
   bound: [[-4.5,4.9],[-5.7,4.4],[-3.7,4.3]]
   marching_cubes_bound: [[-4.5,4.9],[-5.7,4.4],[-3.7,4.3]]
 data:
-  input_folder: /data0/wjy/ESLAM/Datasets/Replica/office0
-# input_folder: /data0/sgl/ESLAM-main/Datasets/office0_loop
-  output: output/Replica/office0
-  trainskip: 1
-
-loop:
-  loop_launch_id: 100
-  min_time_diff: 100
-  sim_threshold: 0.93
+  input_folder: Datasets/Replica/office0
+  output: output/Replica/office0_0710
