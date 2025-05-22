@@ -14,12 +14,15 @@ tracking:
   #iters: 10
 mapping:
   #every_frame: 5
+  sdf_weight: 2000
+  fs_weight: 20
+  sample: 2048
+  min_pixels_cur: 100
   every_frame: 4
   pixels: 4000
   iters: 15
   lr_embed: 0.01
   lr_decoder: 0.01
-  #iters: 60
   vis_freq: 50
   vis_inside_freq: 30
   w_sdf_fs: 5
@@ -27,10 +30,12 @@ mapping:
   w_sdf_tail: 30
   w_depth: 0.1
   w_color: 5
-  w_smooth: 0.000001
+  w_smooth: 0.00000
   n_pixels: 0.05
-  max_drift: 10 #just for test
+  max_drift: 4 #just for test
   #mesh_freq: 1500 #just for test
+  res_keyframe: 8
+  gb_keyframe: 4
 cam:
   H: 680
   W: 1200
@@ -59,7 +64,6 @@ data:
   downsample: 1
   translation: 0
   num_workers: 4
-
 training:
   trunc: 0.06
   smooth_pts: 32
