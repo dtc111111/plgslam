@@ -11,14 +11,14 @@
 First you have to make sure that you have all dependencies in place.
 The simplest way to do so, is to use [anaconda](https://www.anaconda.com/). 
 
-You can create an anaconda environment called `eslam`. For linux, you need to install **libopenexr-dev** before creating the environment.
+You can create an anaconda environment called `plgslam`. For linux, you need to install **libopenexr-dev** before creating the environment.
 ```bash
 sudo apt-get install libopenexr-dev
     
 conda env create -f environment.yaml
 conda activate plgslam
 ```
-If desired, the Open3D package can be installed in the [headless rendering](http://www.open3d.org/docs/latest/tutorial/Advanced/headless_rendering.html) mode. This is useful for running ESLAM on a server without a display. We recommend to install from [this commit](https://github.com/isl-org/Open3D/tree/v0.15.1) as we observed bugs in other releases of Open3D.
+If desired, the Open3D package can be installed in the [headless rendering](http://www.open3d.org/docs/latest/tutorial/Advanced/headless_rendering.html) mode. This is useful for running PLGSLAM on a server without a display. We recommend to install from [this commit](https://github.com/isl-org/Open3D/tree/v0.15.1) as we observed bugs in other releases of Open3D.
 
 ## Run
 
@@ -27,7 +27,7 @@ Download the data as below and the data is saved into the `./Datasets/Replica` f
 ```bash
 bash scripts/download_replica.sh
 ```
-and you can run ESLAM:
+and you can run PLGSLAM:
 ```bash
 python -W ignore run.py configs/Replica/room0.yaml
 ```
@@ -68,7 +68,7 @@ Please follow the data downloading procedure on [ScanNet](http://www.scan-net.or
 ```
 </details>
 
-Once the data is downloaded and set up properly, you can run ESLAM:
+Once the data is downloaded and set up properly, you can run PLGSLAM:
 ```bash
 python -W ignore run.py configs/ScanNet/scene0000.yaml
 ```
@@ -79,7 +79,7 @@ Download the data as below and the data is saved into the `./Datasets/TUM` folde
 ```bash
 bash scripts/download_tum.sh
 ```
-and you can run ESLAM:
+and you can run PLGSLAM:
 ```bash
 python -W ignore run.py configs/TUM_RGBD/freiburg1_desk.yaml
 ```
@@ -116,16 +116,16 @@ python src/tools/eval_recon.py --rec_mesh $OUTPUT_FOLDER/mesh/final_mesh_eval_re
 ```
 
 ## Visualizing PLGSLAM Results
-For visualizing the results, we recommend to set `mesh_freq: 40` in [configs/ESLAM.yaml](configs/ESLAM.yaml) and run ESLAM from scratch.
+For visualizing the results, we recommend to set `mesh_freq: 40` in [configs/PLGSLAM.yaml](configs/PLGSLAM.yaml) and run PLGSLAM from scratch.
 
-After ESLAM is trained, run the following command for visualization.
+After PLGSLAM is trained, run the following command for visualization.
 
 ```bash
 python visualizer.py configs/Replica/room0.yaml --output output/Replica/room0 --top_view --save_rendering
 ```
-The result of the visualization will be saved at `output/Replica/room0/vis.mp4`. The green trajectory indicates the ground truth trajectory, and the red one is the trajectory of ESLAM.
+The result of the visualization will be saved at `output/Replica/room0/vis.mp4`. The green trajectory indicates the ground truth trajectory, and the red one is the trajectory of PLGSLAM.
 
-Note: `mesh_freq: 40` means extracting a mesh every 40 input frames. Since extracting a mesh with a high resolution takes some time, for faster running of ESLAM for visualization set `meshing resolution` in [configs/Replica/replica.yaml](configs/Replica/replica.yaml) to a higher value before running ESLAM (*e.g.*, 5 cm).
+Note: `mesh_freq: 40` means extracting a mesh every 40 input frames. Since extracting a mesh with a high resolution takes some time, for faster running of PLGSLAM for visualization set `meshing resolution` in [configs/Replica/replica.yaml](configs/Replica/replica.yaml) to a higher value before running PLGSLAM (*e.g.*, 5 cm).
 
 ### Visualizer Command line arguments
 - `--output $OUTPUT_FOLDER` output folder (overwrite the output folder in the config file)
