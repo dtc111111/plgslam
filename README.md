@@ -6,6 +6,12 @@
   <div align="center"></div>
 </p>
 
+<p align="center">
+  <a href="">
+    <img src="Fig/framework.png" alt="Logo" width="100%">
+  </a>
+</p>
+
 ## Installation
 
 First you have to make sure that you have all dependencies in place.
