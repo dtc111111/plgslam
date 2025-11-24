@@ -120,7 +120,6 @@ dependencies:
     - decorator==5.1.1
     - defusedxml==0.7.1
     - deprecation==2.1.0
-    - droid-backends==0.0.0
     - entrypoints==0.4
     - evo==1.16.0
     - ffmpeg==1.4
