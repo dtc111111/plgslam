@@ -32,17 +32,21 @@ If desired, the Open3D package can be installed in the [headless rendering](http
 ```bash
 cd external/NumpyMarchingCubes
 python setup.py install
+```
+## Pytorch3d
 
-##Pytorch3d
 ```bash
 git clone https://github.com/facebookresearch/pytorch3d.git
 cd pytorch3d
 pip install -e .
-##tiny-cuda-nn
+```
+## tiny-cuda-nn
 ```bash
 git clone --recursive https://github.com/nvlabs/tiny-cuda-nn
 cd tiny-cuda-nn/bindings/torch
 python setup.py install
+```
+
 ## Run
 
 ### Replica
