@@ -26,6 +26,23 @@ conda activate plgslam
 ```
 If desired, the Open3D package can be installed in the [headless rendering](http://www.open3d.org/docs/latest/tutorial/Advanced/headless_rendering.html) mode. This is useful for running PLGSLAM on a server without a display. We recommend to install from [this commit](https://github.com/isl-org/Open3D/tree/v0.15.1) as we observed bugs in other releases of Open3D.
 
+
+## NumpyMarchingCubes
+
+```bash
+cd external/NumpyMarchingCubes
+python setup.py install
+
+##Pytorch3d
+```bash
+git clone https://github.com/facebookresearch/pytorch3d.git
+cd pytorch3d
+pip install -e .
+##tiny-cuda-nn
+```bash
+git clone --recursive https://github.com/nvlabs/tiny-cuda-nn
+cd tiny-cuda-nn/bindings/torch
+python setup.py install
 ## Run
 
 ### Replica
